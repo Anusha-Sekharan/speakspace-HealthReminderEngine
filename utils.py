@@ -1,10 +1,14 @@
 import html
+from datetime import datetime
 
 def format_email_body(summary: str, patient_name: str = None, patient_id: str = None, include_metadata: bool = True):
     """
     Formats the email body for the doctor.
     Returns a tuple of (plain_text, html_content).
     """
+    
+    # Get current timestamp
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     # Safe HTML escaping
     safe_summary = html.escape(summary).replace('\n', '<br>')
@@ -16,6 +20,7 @@ def format_email_body(summary: str, patient_name: str = None, patient_id: str = 
     if include_metadata:
         text_parts.append(f"Patient Name: {patient_name if patient_name else 'N/A'}")
         text_parts.append(f"Patient ID: {patient_id if patient_id else 'N/A'}")
+        text_parts.append(f"Date: {current_time}")
         text_parts.append("-" * 20)
     
     text_parts.append("Summary Report:")
@@ -31,6 +36,7 @@ def format_email_body(summary: str, patient_name: str = None, patient_id: str = 
         html_parts.append("<div style='background-color: #f4f4f4; padding: 10px; border-radius: 5px; margin-bottom: 20px;'>")
         html_parts.append(f"<p><strong>Patient Name:</strong> {safe_p_name}</p>")
         html_parts.append(f"<p><strong>Patient ID:</strong> {safe_p_id}</p>")
+        html_parts.append(f"<p><strong>Date:</strong> {current_time}</p>")
         html_parts.append("</div>")
     
     html_parts.append(f"<h3>Summary Report</h3>")

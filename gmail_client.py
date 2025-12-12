@@ -20,11 +20,25 @@ def get_gmail_service():
     Lists the user's Gmail labels.
     """
     creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists(TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+    
+    # 1. Try environment variable (for Render/Production)
+    token_data = os.environ.get('GOOGLE_TOKEN_DATA')
+    if token_data:
+        try:
+            import json
+            info = json.loads(token_data)
+            creds = Credentials.from_authorized_user_info(info, SCOPES)
+        except Exception as e:
+            print(f"Error loading creds from env: {e}")
+            creds = None
+
+    # 2. Try local file if env var didn't work
+    if not can_use_env_creds(creds):
+        # The file token.json stores the user's access and refresh tokens, and is
+        # created automatically when the authorization flow completes for the first
+        # time.
+        if os.path.exists(TOKEN_FILE):
+            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
     
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
@@ -36,18 +50,23 @@ def get_gmail_service():
                 creds = None
         
         if not creds:
-            if not os.path.exists(CREDENTIALS_FILE):
-                raise FileNotFoundError(f"'{CREDENTIALS_FILE}' not found. Please download it from Google Cloud Console.")
+            # We cannot do interactive login in production/headless
+            if not os.path.exists(CREDENTIALS_FILE) and not os.environ.get('GOOGLE_TOKEN_DATA'):
+                 # If we are here, we are likely in prod but env var failed or missing
+                 print("WARNING: No credentials found and interactive login is not possible in this environment.")
             
-            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-            creds = flow.run_local_server(port=0)
-        
-        # Save the credentials for the next run
-        with open(TOKEN_FILE, 'w') as token:
-            token.write(creds.to_json())
+            if os.path.exists(CREDENTIALS_FILE):
+                flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)
+                # Save the credentials for the next run
+                with open(TOKEN_FILE, 'w') as token:
+                    token.write(creds.to_json())
 
     service = build('gmail', 'v1', credentials=creds)
     return service
+
+def can_use_env_creds(creds):
+    return creds and creds.valid
 
 def send_email(service, to, subject, text_body, html_body=None, cc=None, bcc=None):
     """Create and send an email message
