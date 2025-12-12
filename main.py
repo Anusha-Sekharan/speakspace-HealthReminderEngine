@@ -75,23 +75,43 @@ def run_cli_test(test_email: str):
         print(f"Failed to send email: {e}")
 
 
+import re
 from orchestrator import process_command
 
 class ExecuteRequest(BaseModel):
-    text: str
-    doctor_email: EmailStr
+    text: Optional[str] = None
+    prompt: Optional[str] = None
+    doctor_email: Optional[EmailStr] = None
 
 @app.post("/process-command")
 async def process_command_endpoint(request: ExecuteRequest):
     """
     Smart endpoint: Parses natural language to perform Reminder+Summary actions.
+    Accepts 'text' or 'prompt' field.
     """
     try:
-        results = process_command(request.text, request.doctor_email)
+        # 1. Resolve Text
+        command_text = request.prompt or request.text
+        if not command_text:
+            raise HTTPException(status_code=400, detail="No text or prompt provided")
+
+        # 2. Resolve Email
+        target_email = request.doctor_email
+        if not target_email:
+            # Try to extract from text
+            match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', command_text)
+            if match:
+                target_email = match.group(0)
+            else:
+                # Fallback: Raise error or use a default if configured? 
+                # For now, require it in text if not in field.
+                raise HTTPException(status_code=400, detail="Doctor email not provided and could not be found in text.")
+
+        results = process_command(command_text, target_email)
         return {"success": True, "results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="SpeakSpace Doctor Email Service")
