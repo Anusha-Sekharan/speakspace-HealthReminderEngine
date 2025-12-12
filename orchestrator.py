@@ -63,7 +63,8 @@ def process_command(text: str, doctor_email: str):
             gmail_service = get_gmail_service()
             text_body, html_body = format_email_body(
                 summary=summary_text,
-                patient_name="User",
+                patient_name="Anusha S",
+                patient_id="54321",
                 include_metadata=True
             )
             

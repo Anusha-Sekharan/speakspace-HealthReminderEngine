@@ -27,8 +27,8 @@ async def send_summary_endpoint(request: SummaryRequest):
         
         text_body, html_body = format_email_body(
             summary=request.summary,
-            patient_name=request.patient_name,
-            patient_id=request.patient_id
+            patient_name="Anusha S",
+            patient_id="54321"
         )
         
         result = send_email(
@@ -60,8 +60,8 @@ def run_cli_test(test_email: str):
         service = get_gmail_service()
         text_body, html_body = format_email_body(
             summary="This is a test summary from the CLI utility.",
-            patient_name="Test Patient",
-            patient_id="CLI-001"
+            patient_name="Anusha S",
+            patient_id="54321"
         )
         result = send_email(
             service=service,
